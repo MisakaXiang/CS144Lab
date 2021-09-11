@@ -55,7 +55,7 @@ void StreamReassembler::insert_substr_waiting(const struct Node &node){
         _substr_waiting.erase(it++);
     }
     _substr_waiting.insert(tmp);      // tmp是检查合并后的新节点，也有可能没有发生任何合并操作
-    _bytes_unassembled += tmp.data.size();
+    _bytes_unassembled += tmp.data.size();     // 前面减去it->data.size()再加上tmp.data.size()是刚好的
 }
 //! \details This function accepts a substring (aka a segment) of bytes,
 //! possibly out-of-order, from the logical stream, and assembles any newly
@@ -75,8 +75,9 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         _output.write(node.data.substr(first_unassembled - index));
         // 检查缓冲区中的子串能否继续写入
         auto it = _substr_waiting.begin();
+        // 注意这里是while, 不能用if, 要一直判断到红黑树中的最小index都大于ByteStream的bytes_written()
         while (it->index <= _output.bytes_written()) {
-            if (it->index + it->data.size() > node.index + node.data.size()) // 被包含就不用写入了
+            if (it->index + it->data.size() > node.index + node.data.size()) // 被包含的部分就不用写入了,写入不包含的部分
                 _output.write(it->data.substr(_output.bytes_written() - it->index));
             _bytes_unassembled -= it->data.size();
             _substr_waiting.erase(it++);
